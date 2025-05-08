@@ -12,11 +12,18 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(cookieParser());
 
+// Define environment variables
+const isProduction = process.env.NODE_ENV === 'production';
+const port = isProduction ? (process.env.PORT || 80) : 4000;
+
 // Define allowed origins
 const allowedOrigins = [
-    'http://localhost:4200',
     'https://user-management-angular-eight.vercel.app',
-    'https://user-management-angular.onrender.com'
+    'https://user-management-angular.vercel.app',
+    'https://user-management-angular.onrender.com',
+    'http://localhost:4200',
+    'http://localhost:3000',
+    'http://127.0.0.1:4200'
 ];
 
 // CORS configuration
@@ -43,7 +50,6 @@ app.use('/api-docs', require('./_helpers/swagger'));
 app.use(errorHandler);
 
 // start server
-const port = process.env.NODE_ENV === 'production' ? (process.env.PORT || 80) : 4000;
 app.listen(port, () => {
     console.log('Server listening on port ' + port);
     console.log('API Documentation available at /api-docs');

@@ -6,7 +6,6 @@ import { map, finalize } from 'rxjs/operators';
 
 import { environment } from '../../environments/environment';
 import { Account } from '../../app/_models';
-import { ApiUrlService } from './api-url.service';
 
 @Injectable({ providedIn: 'root' })
 export class AccountService {
@@ -16,13 +15,12 @@ export class AccountService {
 
   constructor(
     private router: Router,
-    private http: HttpClient,
-    private apiUrlService: ApiUrlService
+    private http: HttpClient
   ) {
     const storedAccount = localStorage.getItem('account');
     this.accountSubject = new BehaviorSubject<Account | null>(storedAccount ? JSON.parse(storedAccount) : null);
     this.account = this.accountSubject.asObservable();
-    this.baseUrl = `${this.apiUrlService.apiUrl}/accounts`;
+    this.baseUrl = environment.apiUrl;
   }
 
   public get accountValue(): Account | null {
