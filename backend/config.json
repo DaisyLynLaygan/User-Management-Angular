@@ -1,10 +1,10 @@
 {
   "database": {
-      "host": "localhost",
-      "port": 3306,
-      "user": "root",
-      "password": "",
-      "database": "BoilerplateAPI"
+      "host": "trolley.proxy.rlwy.net",
+      "port": 35606,
+      "user": "postgres",
+      "password": "BiqmtmJvQPISWyMpiZKhZHJfmyKXwbSu",
+      "database": "railway"
   },
   "secret": "STARTTLS",
   "emailFrom": "daisylynlaygan@gmail.com",

@@ -17,7 +17,14 @@ function model(sequelize) {
         resetTokenExpires: { type: DataTypes.DATE },
         passwordReset: { type: DataTypes.DATE },
         created: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
-        status: { type: DataTypes.ENUM('Active', 'Inactive'), allowNull: false, defaultValue: 'Inactive' },
+        status: { 
+            type: DataTypes.STRING, 
+            allowNull: false, 
+            defaultValue: 'Inactive',
+            validate: {
+                isIn: [['Active', 'Inactive']]
+            }
+        },
         updated: { type: DataTypes.DATE },
         isVerified: {
             type: DataTypes.VIRTUAL,
