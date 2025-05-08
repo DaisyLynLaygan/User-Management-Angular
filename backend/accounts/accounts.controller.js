@@ -1,4 +1,3 @@
-
 const express = require('express');
 const router = express.Router();
 const Joi = require('joi');
@@ -96,8 +95,31 @@ function registerSchema(req, res, next) {
 }
 
 function register(req, res, next) {
-    accountService.register(req.body, req.get('origin'))
-        .then(result => res.json(result)) // ✅ Send full result including verificationToken
+    // Get the origin from the request headers
+    let origin = req.get('origin');
+    
+    // Check if origin is from a browser with a referer
+    if (!origin && req.headers.referer) {
+        try {
+            const refererUrl = new URL(req.headers.referer);
+            origin = `${refererUrl.protocol}//${refererUrl.host}`;
+        } catch (e) {
+            // Invalid referer URL, continue with origin as null
+        }
+    }
+    
+    // If still no origin, check for specific domains in the host header
+    if (!origin && req.headers.host) {
+        const host = req.headers.host;
+        if (host.includes('vercel.app')) {
+            origin = 'https://user-management-angular-eight.vercel.app';
+        } else if (host.includes('onrender.com')) {
+            origin = 'https://user-management-angular.onrender.com';
+        }
+    }
+    
+    accountService.register(req.body, origin)
+        .then(result => res.json(result))
         .catch(next);
 }
 
@@ -122,7 +144,30 @@ function forgotPasswordSchema(req, res, next) {
 }
 
 function forgotPassword(req, res, next) {
-    accountService.forgotPassword(req.body, req.get('origin'))
+    // Get the origin from the request headers
+    let origin = req.get('origin');
+    
+    // Check if origin is from a browser with a referer
+    if (!origin && req.headers.referer) {
+        try {
+            const refererUrl = new URL(req.headers.referer);
+            origin = `${refererUrl.protocol}//${refererUrl.host}`;
+        } catch (e) {
+            // Invalid referer URL, continue with origin as null
+        }
+    }
+    
+    // If still no origin, check for specific domains in the host header
+    if (!origin && req.headers.host) {
+        const host = req.headers.host;
+        if (host.includes('vercel.app')) {
+            origin = 'https://user-management-angular-eight.vercel.app';
+        } else if (host.includes('onrender.com')) {
+            origin = 'https://user-management-angular.onrender.com';
+        }
+    }
+    
+    accountService.forgotPassword(req.body, origin)
         .then(() => res.json({ message: 'Please check your email for password reset instructions' }))
         .catch(next);
 }
