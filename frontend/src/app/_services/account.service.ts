@@ -6,29 +6,31 @@ import { map, finalize } from 'rxjs/operators';
 
 import { environment } from '../../environments/environment';
 import { Account } from '../../app/_models';
-
-const baseUrl = `${environment.apiUrl}/accounts`;
+import { ApiUrlService } from './api-url.service';
 
 @Injectable({ providedIn: 'root' })
 export class AccountService {
-  private accountSubject: BehaviorSubject<Account>;
-  public account: Observable<Account>;
+  private accountSubject: BehaviorSubject<Account | null>;
+  public account: Observable<Account | null>;
+  private baseUrl: string;
 
   constructor(
     private router: Router,
-    private http: HttpClient
+    private http: HttpClient,
+    private apiUrlService: ApiUrlService
   ) {
     const storedAccount = localStorage.getItem('account');
-    this.accountSubject = new BehaviorSubject<Account>(storedAccount ? JSON.parse(storedAccount) : null);
+    this.accountSubject = new BehaviorSubject<Account | null>(storedAccount ? JSON.parse(storedAccount) : null);
     this.account = this.accountSubject.asObservable();
+    this.baseUrl = `${this.apiUrlService.apiUrl}/accounts`;
   }
 
-  public get accountValue(): Account {
+  public get accountValue(): Account | null {
     return this.accountSubject.value;
   }
 
   login(email: string, password: string) {
-    return this.http.post<any>(`${baseUrl}/authenticate`, { email, password }, { withCredentials: true })
+    return this.http.post<any>(`${this.baseUrl}/authenticate`, { email, password }, { withCredentials: true })
       .pipe(map(account => {
         this.accountSubject.next(account);
         localStorage.setItem('account', JSON.stringify(account));
@@ -38,7 +40,7 @@ export class AccountService {
   }
 
   logout() {
-    this.http.post<any>(`${baseUrl}/revoke-token`, {}, { withCredentials: true }).subscribe();
+    this.http.post<any>(`${this.baseUrl}/revoke-token`, {}, { withCredentials: true }).subscribe();
     this.stopRefreshTokenTimer();
     this.accountSubject.next(null);
     localStorage.removeItem('account');
@@ -46,7 +48,7 @@ export class AccountService {
   }
 
   refreshToken() {
-    return this.http.post<any>(`${baseUrl}/refresh-token`, {}, { withCredentials: true })
+    return this.http.post<any>(`${this.baseUrl}/refresh-token`, {}, { withCredentials: true })
       .pipe(map((account) => {
         this.accountSubject.next(account);
         localStorage.setItem('account', JSON.stringify(account));
@@ -56,41 +58,41 @@ export class AccountService {
   }
 
   register(account: Account) {
-    return this.http.post(`${baseUrl}/register`, account);
+    return this.http.post(`${this.baseUrl}/register`, account);
   }
 
   verifyEmail(token: string) {
-    return this.http.post(`${baseUrl}/verify-email`, { token });
+    return this.http.post(`${this.baseUrl}/verify-email`, { token });
   }
 
   forgotPassword(email: string) {
-    return this.http.post(`${baseUrl}/forgot-password`, { email });
+    return this.http.post(`${this.baseUrl}/forgot-password`, { email });
   }
 
   validateResetToken(token: string) {
-    return this.http.post(`${baseUrl}/validate-reset-token`, { token });
+    return this.http.post(`${this.baseUrl}/validate-reset-token`, { token });
   }
 
   resetPassword(token: string, password: string, confirmPassword: string) {
-    return this.http.post(`${baseUrl}/reset-password`, { token, password, confirmPassword });
+    return this.http.post(`${this.baseUrl}/reset-password`, { token, password, confirmPassword });
   }
 
   getAll() {
-    return this.http.get<Account[]>(baseUrl);
+    return this.http.get<Account[]>(this.baseUrl);
   }
 
   getById(id: string) {
-    return this.http.get<Account>(`${baseUrl}/${id}`);
+    return this.http.get<Account>(`${this.baseUrl}/${id}`);
   }
 
   create(params) {
-    return this.http.post(baseUrl, params);
+    return this.http.post(this.baseUrl, params);
   }
 
   update(id, params) {
-    return this.http.put(`${baseUrl}/${id}`, params)
+    return this.http.put(`${this.baseUrl}/${id}`, params)
       .pipe(map((account: any) => {
-        if (account.id === this.accountValue.id) {
+        if (this.accountValue && account.id === this.accountValue.id) {
           account = { ...this.accountValue, ...account };
           this.accountSubject.next(account);
           localStorage.setItem('account', JSON.stringify(account));
@@ -100,9 +102,9 @@ export class AccountService {
   }
 
   delete(id: string) {
-    return this.http.delete(`${baseUrl}/${id}`)
+    return this.http.delete(`${this.baseUrl}/${id}`)
       .pipe(finalize(() => {
-        if (id === this.accountValue.id) {
+        if (this.accountValue && id === this.accountValue.id) {
           this.logout();
         }
       }));
@@ -110,9 +112,11 @@ export class AccountService {
 
   // helper methods
 
-  private refreshTokenTimeout;
+  private refreshTokenTimeout: any;
 
   private startRefreshTokenTimer() {
+    if (!this.accountValue || !this.accountValue.jwtToken) return;
+    
     const jwtToken = JSON.parse(atob(this.accountValue.jwtToken.split('.')[1]));
     const expires = new Date(jwtToken.exp * 1000);
     const timeout = expires.getTime() - Date.now() - (60 * 1000);
